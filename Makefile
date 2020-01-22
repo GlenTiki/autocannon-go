@@ -4,7 +4,7 @@ all: test build
 
 build: test
 	mkdir -p build
-	go build -o build/autocannon-go ./main.go
+	go build -o build/autocannon-go ./autocannon.go
 
 test:
 	go test ./...
