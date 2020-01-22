@@ -16,8 +16,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const debug = false
-
 type resp struct {
 	status  int
 	latency int64
@@ -30,6 +28,7 @@ func main() {
 	pipeliningFactor := flag.Int("pipelining", 10, "The number of pipelined requests to use.")
 	runtime := flag.Int("duration", 10, "The number of seconds to run the autocannnon.")
 	timeout := flag.Int("timeout", 10, "The number of seconds before timing out on a request.")
+	debug := flag.Bool("debug", false, "A utility debug flag.")
 	flag.Parse()
 
 	if *uri == "" {
@@ -68,7 +67,7 @@ func main() {
 		select {
 		case err := <-errChan:
 			errors++
-			if debug {
+			if *debug {
 				fmt.Printf("there was an error: %s\n", err.Error())
 			}
 			if err.Error() == "timeout" {
@@ -179,7 +178,7 @@ func main() {
 			fmt.Println("Req/Bytes counts sampled once per second.")
 			fmt.Println("")
 			fmt.Println("")
-			fmt.Println(fmt.Sprintf("%v 2xx responses, %v non 2xx responses.", formatBigNum(float64(resp2xx)), formatBigNum(float64(respN2xx))))
+			fmt.Println(fmt.Sprintf("%v 2xx responses, %v non 2xx responses.", resp2xx, respN2xx))
 			fmt.Println(fmt.Sprintf("%v total requests in %v seconds, %s read.", formatBigNum(float64(totalResp)), *runtime, humanize.Bytes(uint64(totalBytes))))
 			if errors > 0 {
 				fmt.Println(fmt.Sprintf("%v total errors (%v timeouts).", formatBigNum(float64(errors)), formatBigNum(float64(timeouts))))
