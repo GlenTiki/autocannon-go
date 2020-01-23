@@ -28,10 +28,10 @@ jobs:
           v: true
           x: false
           ldflags: -s -w
-			- name: Build project # This would actually build your project, using zip for an example artifact
+      - name: Build project # This would actually build your project, using zip for an example artifact
          run: |
           zip -r autocannon-go-execs build
-			- name: Create Release
+      - name: Create Release
         id: create_release
         uses: actions/create-release@v1.0.0
         env:
