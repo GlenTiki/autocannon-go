@@ -73,7 +73,7 @@ func main() {
 			if *debug {
 				fmt.Printf("there was an error: %s\n", err.Error())
 			}
-			if err.Error() == "timeout" {
+			if err == fasthttp.ErrTimeout {
 				timeouts++
 			}
 		case res := <-respChan:
@@ -214,11 +214,11 @@ func runClients(ctx goprocess.Process, clients int, pipeliningFactor int, timeou
 
 		for j := 0; j < pipeliningFactor; j++ {
 			go func() {
-				req := &fasthttp.Request{}
+				req := fasthttp.AcquireRequest()
 				req.SetBody([]byte("hello, world!"))
 				req.SetRequestURI(uri)
 
-				res := &fasthttp.Response{}
+				res := fasthttp.AcquireResponse()
 
 				for {
 					startTime := time.Now()
