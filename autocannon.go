@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/codahale/hdrhistogram"
 	"github.com/dustin/go-humanize"
+	"github.com/glentiki/hdrhistogram"
+	"github.com/jbenet/goprocess"
 	"github.com/olekukonko/tablewriter"
 	"github.com/ttacon/chalk"
 	"github.com/valyala/fasthttp"
@@ -25,7 +26,7 @@ type resp struct {
 func main() {
 	uri := flag.String("uri", "", "The uri to benchmark against. (Required)")
 	clients := flag.Int("connections", 10, "The number of connections to open to the server.")
-	pipeliningFactor := flag.Int("pipelining", 10, "The number of pipelined requests to use.")
+	pipeliningFactor := flag.Int("pipelining", 1, "The number of pipelined requests to use.")
 	runtime := flag.Int("duration", 10, "The number of seconds to run the autocannnon.")
 	timeout := flag.Int("timeout", 10, "The number of seconds before timing out on a request.")
 	debug := flag.Bool("debug", false, "A utility debug flag.")
@@ -37,9 +38,11 @@ func main() {
 	}
 
 	fmt.Println(fmt.Sprintf("running %vs test @ %v", *runtime, *uri))
-	fmt.Println(fmt.Sprintf("%v connections.", *clients))
+	fmt.Println(fmt.Sprintf("%v connections with %v pipelining factor.", *clients, *pipeliningFactor))
 
-	respChan, errChan := runClients(*clients, *pipeliningFactor, time.Second*time.Duration(*timeout), *uri)
+	proc := goprocess.Background()
+
+	respChan, errChan := runClients(proc, *clients, *pipeliningFactor, time.Second*time.Duration(*timeout), *uri)
 
 	latencies := hdrhistogram.New(1, 10000, 5)
 	requests := hdrhistogram.New(1, 1000000, 5)
@@ -120,10 +123,10 @@ func main() {
 				tablewriter.Colors{tablewriter.Bold, tablewriter.FgCyanColor})
 			shortLatency.Append([]string{
 				chalk.Bold.TextStyle("Latency"),
-				fmt.Sprintf("%v ms", latencies.ValueAtQuantile(2.5)),
-				fmt.Sprintf("%v ms", latencies.ValueAtQuantile(50)),
-				fmt.Sprintf("%v ms", latencies.ValueAtQuantile(97.5)),
-				fmt.Sprintf("%v ms", latencies.ValueAtQuantile(99)),
+				fmt.Sprintf("%v ms", latencies.ValueAtPercentile(2.5)),
+				fmt.Sprintf("%v ms", latencies.ValueAtPercentile(50)),
+				fmt.Sprintf("%v ms", latencies.ValueAtPercentile(97.5)),
+				fmt.Sprintf("%v ms", latencies.ValueAtPercentile(99)),
 				fmt.Sprintf("%.2f ms", latencies.Mean()),
 				fmt.Sprintf("%.2f ms", latencies.StdDev()),
 				fmt.Sprintf("%v ms", latencies.Max()),
@@ -154,20 +157,20 @@ func main() {
 				tablewriter.Colors{tablewriter.Bold, tablewriter.FgCyanColor})
 			requestsTable.Append([]string{
 				chalk.Bold.TextStyle("Req/Sec"),
-				fmt.Sprintf("%v", requests.ValueAtQuantile(1)),
-				fmt.Sprintf("%v", requests.ValueAtQuantile(2.5)),
-				fmt.Sprintf("%v", requests.ValueAtQuantile(50)),
-				fmt.Sprintf("%v", requests.ValueAtQuantile(97.5)),
+				fmt.Sprintf("%v", requests.ValueAtPercentile(1)),
+				fmt.Sprintf("%v", requests.ValueAtPercentile(2.5)),
+				fmt.Sprintf("%v", requests.ValueAtPercentile(50)),
+				fmt.Sprintf("%v", requests.ValueAtPercentile(97.5)),
 				fmt.Sprintf("%.2f", requests.Mean()),
 				fmt.Sprintf("%.2f", requests.StdDev()),
 				fmt.Sprintf("%v", requests.Min()),
 			})
 			requestsTable.Append([]string{
-				chalk.Bold.TextStyle("Bytes"),
-				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtQuantile(1)))),
-				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtQuantile(2.5)))),
-				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtQuantile(50)))),
-				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtQuantile(97.5)))),
+				chalk.Bold.TextStyle("Bytes/Sec"),
+				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtPercentile(1)))),
+				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtPercentile(2.5)))),
+				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtPercentile(50)))),
+				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.ValueAtPercentile(97.5)))),
 				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.Mean()))),
 				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.StdDev()))),
 				fmt.Sprintf("%v", humanize.Bytes(uint64(throughput.Min()))),
@@ -192,12 +195,12 @@ func main() {
 
 func formatBigNum(i float64) string {
 	if i < 1000 {
-		return fmt.Sprintf("%f", i)
+		return fmt.Sprintf("%.0f", i)
 	}
 	return fmt.Sprintf("%.0fk", math.Round(i/1000))
 }
 
-func runClients(clients int, pipeliningFactor int, timeout time.Duration, uri string) (<-chan *resp, <-chan error) {
+func runClients(ctx goprocess.Process, clients int, pipeliningFactor int, timeout time.Duration, uri string) (<-chan *resp, <-chan error) {
 	respChan := make(chan *resp, 2*clients*pipeliningFactor)
 	errChan := make(chan error, 2*clients*pipeliningFactor)
 	u, _ := url.Parse(uri)
@@ -205,7 +208,7 @@ func runClients(clients int, pipeliningFactor int, timeout time.Duration, uri st
 	for i := 0; i < clients; i++ {
 		c := fasthttp.PipelineClient{
 			Addr:               fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
-			IsTLS:              false,
+			IsTLS:              u.Scheme == "https",
 			MaxPendingRequests: pipeliningFactor,
 		}
 
