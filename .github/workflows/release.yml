@@ -35,7 +35,7 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Assets
-        uses: glentiki/xbin-release-action@2b83a5fc8b254ef378d0d6cdce203b961884d7a8
+        uses: glentiki/xbin-release-action@c852e71a30d3a3a7cea749045a59276f14e21ecd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
