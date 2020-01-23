@@ -1,7 +1,7 @@
 name: Go
 on: [push]
-jobs:
 
+jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -19,8 +19,3 @@ jobs:
     - name: Build
       run: make build
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: autocannon-go-build 
-        path: ./build
