@@ -20,7 +20,7 @@ jobs:
           xgo_version: latest
           go_version: ${{ matrix.go_version }}
           dest: build
-          prefix: myapp
+          prefix: autocannon-go
           targets: windows/386,windows/amd64,linux/386,linux/amd64,darwin/386,darwin/amd64
           v: true
           x: false
@@ -36,7 +36,7 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Assets
-        uses: glentiki/xbin-release-action@130bf656a4735998af6db961bd074db5cdf77d46
+        uses: glentiki/xbin-release-action@v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
