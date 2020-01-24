@@ -12,10 +12,12 @@ To install on macOS, you would need to run the following and then add to your pa
 ```
 curl -LO "https://github.com/GlenTiki/autocannon-go/releases/download/v0.0.1/autocannon-go-darwin-10.6-amd64" && chmod +x autocannon-go-darwin-10.6-amd64
 ```
+
 To install on Windows you could install from this link or if you have curl installed then run the following and then add to your path:
 ```
 curl -LO "https://github.com/GlenTiki/autocannon-go/releases/download/v0.0.1/autocannon-go-windows-4.0-amd64.exe"
 ```
+
 To install on Linux, you could curl the following and then add to your path:
 ```
 curl -LO "https://github.com/GlenTiki/autocannon-go/releases/download/v0.0.1/autocannon-go-linux-amd64" && chmod +x autocannon-go-linux-amd64
