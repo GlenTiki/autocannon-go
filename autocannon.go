@@ -207,7 +207,7 @@ func runClients(ctx goprocess.Process, clients int, pipeliningFactor int, timeou
 
 	for i := 0; i < clients; i++ {
 		c := fasthttp.PipelineClient{
-			Addr:               fmt.Sprintf("%v:%v", u.Hostname(), u.Port()),
+			Addr:               getAddr(u),
 			IsTLS:              u.Scheme == "https",
 			MaxPendingRequests: pipeliningFactor,
 		}
@@ -241,4 +241,14 @@ func runClients(ctx goprocess.Process, clients int, pipeliningFactor int, timeou
 		}
 	}
 	return respChan, errChan
+}
+
+// getAddr returns the address from a URL, including the port if it's not empty.
+// So it can return hostname:port or simply hostname
+func getAddr(u *url.URL) string {
+	if u.Port() == "" {
+		return u.Hostname()
+	} else {
+		return fmt.Sprintf("%v:%v", u.Hostname(), u.Port())
+	}
 }
